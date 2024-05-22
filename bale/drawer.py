@@ -1,9 +1,12 @@
-from typing import Optional
+import logging
+
 from nicegui import ui  # type: ignore
+
 from bale import elements as el
+from bale.interfaces import ssh
 from bale.tabs import Tab
 from bale.interfaces import ssh
-import logging
+from bale.tabs import Tab
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +38,21 @@ class Drawer(object):
                 chevron.props("icon=chevron_left")
                 chevron.style("top: 16vh").style("right: -12px").style("height: 16vh")
 
-        with ui.left_drawer(top_corner=True).props("width=226 behavior=desktop bordered").classes("q-pa-none") as drawer:
+        with ui.left_drawer(top_corner=True).props(
+            "width=226 behavior=desktop bordered"
+        ).classes("q-pa-none") as drawer:
             with ui.column().classes("h-full w-full q-py-xs q-px-md") as content:
                 self._header_row = el.WRow().classes("justify-between")
                 self._header_row.tailwind().height("12")
                 with self._header_row:
                     with ui.row():
                         el.IButton(icon="add", on_click=self._display_host_dialog)
-                        self._buttons["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_host("remove"))
-                        self._buttons["edit"] = el.IButton(icon="edit", on_click=lambda: self._modify_host("edit"))
+                        self._buttons["remove"] = el.IButton(
+                            icon="remove", on_click=lambda: self._modify_host("remove")
+                        )
+                        self._buttons["edit"] = el.IButton(
+                            icon="edit", on_click=lambda: self._modify_host("edit")
+                        )
                     ui.label(text="HOSTS").classes("text-secondary")
                 self._table = (
                     ui.table(
@@ -63,17 +72,23 @@ class Drawer(object):
                         on_select=lambda e: self._selected(e),
                     )
                     .on("rowClick", self._clicked, [[], ["name"], None])
-                    .props("dense flat bordered binary-state-sort hide-header hide-pagination hide-selected-bannerhide-no-data")
+                    .props(
+                        "dense flat bordered binary-state-sort hide-header hide-pagination hide-selected-bannerhide-no-data"
+                    )
                 )
                 self._table.tailwind.width("full")
                 self._table.visible = False
                 for name in ssh.get_hosts():
                     self._add_host_to_table(name)
-            chevron = ui.button(icon="chevron_left", color=None, on_click=toggle_drawer).props("padding=0px")
+            chevron = ui.button(
+                icon="chevron_left", color=None, on_click=toggle_drawer
+            ).props("padding=0px")
             chevron.classes("absolute")
-            chevron.style("top: 16vh").style("right: -12px").style("background-color: #0E1210 !important").style("height: 16vh")
-            chevron.tailwind.border_color("[#E97451]")
-            chevron.props(f"color=primary text-color=accent")
+            chevron.style("top: 16vh").style("right: -12px").style(
+                "background-color: #0E1210 !important"
+            ).style("height: 16vh")
+            # chevron.tailwind.border_color("[#E97451]")
+            chevron.props("color=primary text-color=accent")
 
     def _add_host_to_table(self, name):
         if len(name) > 0:
@@ -88,7 +103,12 @@ class Drawer(object):
         save = None
 
         async def send_key():
-            s = ssh.Ssh(host_input.value, hostname=hostname_input.value, username=username_input.value, password=password_input.value)
+            s = ssh.Ssh(
+                host_input.value,
+                hostname=hostname_input.value,
+                username=username_input.value,
+                password=password_input.value,
+            )
             result = await s.send_key()
             if result.stdout.strip() != "":
                 el.notify(result.stdout.strip(), multi_line=True, type="positive")
@@ -102,22 +122,42 @@ class Drawer(object):
                     if name != "":
                         if name in all_hosts:
                             all_hosts.remove(name)
-                    host_input = el.VInput(label="Host", value=" ", invalid_characters="""'`"$\\;&<>|(){} """, invalid_values=all_hosts, max_length=20)
-                    hostname_input = el.VInput(label="Hostname", value=" ", invalid_characters="""!@#$%^&*'`"\\/:;<>|(){}=+[],? """)
+                    host_input = el.VInput(
+                        label="Host",
+                        value=" ",
+                        invalid_characters="""'`"$\\;&<>|(){} """,
+                        invalid_values=all_hosts,
+                        max_length=20,
+                    )
+                    hostname_input = el.VInput(
+                        label="Hostname",
+                        value=" ",
+                        invalid_characters="""!@#$%^&*'`"\\/:;<>|(){}=+[],? """,
+                    )
                     username_input = el.DInput(label="Username", value=" ")
-                    save_em = el.ErrorAggregator(host_input, hostname_input, username_input)
+                    save_em = el.ErrorAggregator(
+                        host_input, hostname_input, username_input
+                    )
                     with el.Card() as c:
                         c.tailwind.width("full")
-                        password_input = el.DInput(label="Password", value=" ").props("type=password")
-                        send_em = el.ErrorAggregator(hostname_input, username_input, password_input)
-                        el.DButton("SEND KEY", on_click=send_key).bind_enabled_from(send_em, "no_errors").tailwind.width("full")
+                        password_input = el.DInput(label="Password", value=" ").props(
+                            "type=password"
+                        )
+                        send_em = el.ErrorAggregator(
+                            hostname_input, username_input, password_input
+                        )
+                        el.DButton("SEND KEY", on_click=send_key).bind_enabled_from(
+                            send_em, "no_errors"
+                        ).tailwind.width("full")
                     with el.Card() as c:
                         c.tailwind.width("full")
                         with ui.scroll_area() as s:
                             s.tailwind.height("[160px]")
                             public_key = await ssh.get_public_key()
                             ui.label(public_key).classes("text-secondary break-all")
-                el.DButton("SAVE", on_click=lambda: host_dialog.submit("save")).bind_enabled_from(save_em, "no_errors")
+                el.DButton(
+                    "SAVE", on_click=lambda: host_dialog.submit("save")
+                ).bind_enabled_from(save_em, "no_errors")
             host_input.value = name
             if name != "":
                 s = ssh.Ssh(name)
@@ -134,7 +174,11 @@ class Drawer(object):
                 for row in self._table.rows:
                     if name == row["name"]:
                         self._table.remove_rows(row)
-            ssh.Ssh(host_input.value, hostname=hostname_input.value, username=username_input.value)
+            ssh.Ssh(
+                host_input.value,
+                hostname=hostname_input.value,
+                username=username_input.value,
+            )
             self._add_host_to_table(host_input.value)
 
     def _modify_host(self, mode):

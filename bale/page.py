@@ -1,10 +1,11 @@
-import asyncio
-from nicegui import app, Client, ui  # type: ignore
-from bale import elements as el
-from bale.drawer import Drawer
-from bale.content import Content
-from bale.interfaces import cli
 import logging
+
+from nicegui import Client, app, ui  # type: ignore
+
+from bale import elements as el
+from bale.content import Content
+from bale.drawer import Drawer
+from bale.interfaces import cli
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +17,14 @@ def build():
         el.load_element_css()
         cli.load_terminal_css()
         ui.colors(
-            primary=el.orange,
-            secondary=el.orange,
-            accent=el.orange,
+            primary=el.primary,
+            secondary=el.primary,
+            accent=el.primary,
             dark=el.dark,
-            positive="#21BA45",
-            negative="#C10015",
-            info="#5C8984",
-            warning="#F2C037",
+            positive="#50FA7B",
+            negative="#FF5555",
+            info="#8BE9FD",
+            warning="#F1FA8C",
         )
         column = ui.column()
         content = Content()

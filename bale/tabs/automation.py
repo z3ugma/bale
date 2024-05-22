@@ -1,34 +1,36 @@
-from typing import Any, Callable, Dict, List, Union
 import asyncio
-from datetime import datetime
 import json
+import logging
 import string
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Union
+
 from apscheduler.job import Job  # type: ignore
-from apscheduler.triggers.combining import AndTrigger  # type: ignore
-from apscheduler.triggers.combining import OrTrigger  # type: ignore
+from apscheduler.triggers.combining import (
+    AndTrigger,  # type: ignore
+    OrTrigger,  # type: ignore
+)
 from apscheduler.triggers.cron import CronTrigger  # type: ignore
 from apscheduler.triggers.interval import IntervalTrigger  # type: ignore
-from cron_validator import CronValidator  # type: ignore
 from cron_descriptor import get_description  # type: ignore
-from nicegui import ui, Tailwind, events  # type: ignore
-from . import SelectionConfirm, Tab
+from cron_validator import CronValidator  # type: ignore
+from nicegui import Tailwind, events, ui  # type: ignore
+
 from bale import elements as el
-from bale.result import Result
-from bale.interfaces import cli
-from bale.interfaces import ssh
-from bale.interfaces import zfs
-from bale.apps import zab
 from bale import scheduler
+from bale.apps import zab
+from bale.interfaces import cli, ssh
 
-import logging
-
+from . import SelectionConfirm, Tab
 
 logger = logging.getLogger(__name__)
 
 job_handlers: Dict[str, Union[cli.Cli, ssh.Ssh]] = {}
 
 
-def automation(raw: Union[str, Job]) -> Union[scheduler.Automation, scheduler.Zfs_Autobackup, None]:
+def automation(
+    raw: Union[str, Job],
+) -> Union[scheduler.Automation, scheduler.Zfs_Autobackup, None]:
     json_data = json.dumps({})
     if isinstance(raw, str):
         json_data = raw
@@ -66,7 +68,9 @@ async def automation_job(**kwargs) -> None:
         if auto.app == "zfs_autobackup":
             populate_job_handler(app=auto.app, job_id=auto.id, host=auto.host)
             if job_handlers[auto.id].is_busy is False:
-                result = await job_handlers[auto.id].execute(command.safe_substitute(name=auto.name, host=auto.host))
+                result = await job_handlers[auto.id].execute(
+                    command.safe_substitute(name=auto.name, host=auto.host)
+                )
                 result.name = auto.host
                 result.status = "success" if result.return_code == 0 else "error"
                 if auto.pipe_success is True and result.status == "success":
@@ -79,7 +83,9 @@ async def automation_job(**kwargs) -> None:
         elif auto.app == "remote":
             populate_job_handler(app=auto.app, job_id=auto.id, host=auto.host)
             if job_handlers[auto.id].is_busy is False:
-                result = await job_handlers[auto.id].execute(command.safe_substitute(name=auto.name, host=auto.host))
+                result = await job_handlers[auto.id].execute(
+                    command.safe_substitute(name=auto.name, host=auto.host)
+                )
                 result.name = auto.host
                 if auto.pipe_success is True and result.status == "success":
                     tab.pipe_result(result=result)
@@ -91,7 +97,9 @@ async def automation_job(**kwargs) -> None:
         elif auto.app == "local":
             populate_job_handler(app=auto.app, job_id=auto.id, host=auto.host)
             if job_handlers[auto.id].is_busy is False:
-                result = await job_handlers[auto.id].execute(command.safe_substitute(name=auto.name, host=auto.host))
+                result = await job_handlers[auto.id].execute(
+                    command.safe_substitute(name=auto.name, host=auto.host)
+                )
                 result.name = auto.host
                 if auto.pipe_success is True and result.status == "success":
                     tab.pipe_result(result=result)
@@ -149,7 +157,9 @@ class Automation(Tab):
             col.tailwind.height("full")
             self._confirm = el.WRow()
             self._confirm.visible = False
-            with el.WRow().classes("justify-between").bind_visibility_from(self._confirm, "visible", value=False):
+            with el.WRow().classes("justify-between").bind_visibility_from(
+                self._confirm, "visible", value=False
+            ):
                 with ui.row().classes("items-center"):
                     el.SmButton("Create", on_click=self._create_automation)
                     el.SmButton("Remove", on_click=self._remove_automation)
@@ -179,7 +189,11 @@ class Automation(Tab):
                             "filter": "agTextColumnFilter",
                             "maxWidth": 150,
                         },
-                        {"headerName": "Command", "field": "command", "filter": "agTextColumnFilter"},
+                        {
+                            "headerName": "Command",
+                            "field": "command",
+                            "filter": "agTextColumnFilter",
+                        },
                         {
                             "headerName": "Next Run",
                             "field": "next_run",
@@ -233,7 +247,9 @@ class Automation(Tab):
             with el.DBody(height="fit", width="fit"):
                 with el.WColumn():
                     with el.Card():
-                        terminal = cli.Terminal(options={"rows": 20, "cols": 120, "convertEol": True})
+                        terminal = cli.Terminal(
+                            options={"rows": 20, "cols": 120, "convertEol": True}
+                        )
                         if job_id in job_handlers:
                             job_handlers[job_id].register_terminal(terminal)
                 with el.WRow() as row:
@@ -259,7 +275,14 @@ class Automation(Tab):
                 next_run = "NA"
             auto = automation(job)
             if auto is not None and auto.host == self.host:
-                self._automations.append({"name": auto.name, "command": auto.command, "next_run": next_run, "status": ""})
+                self._automations.append(
+                    {
+                        "name": auto.name,
+                        "command": auto.command,
+                        "next_run": next_run,
+                        "status": "",
+                    }
+                )
         self._grid.update()
 
     async def _remove_automation(self) -> None:
@@ -276,8 +299,12 @@ class Automation(Tab):
                         if isinstance(auto, scheduler.Zfs_Autobackup):
                             for host in auto.hosts:
                                 command = AutomationTemplate(auto.prop)
-                                prop = command.safe_substitute(name=auto.name, host=host)
-                                await self._remove_prop_from_all_fs(host=host, prop=prop)
+                                prop = command.safe_substitute(
+                                    name=auto.name, host=host
+                                )
+                                await self._remove_prop_from_all_fs(
+                                    host=host, prop=prop
+                                )
                         self.scheduler.scheduler.remove_job(job.id)
                 self._automations.remove(row)
             self._grid.update()
@@ -303,21 +330,33 @@ class Automation(Tab):
             await self._create_automation(rows[0]["name"])
         self._set_selection()
 
-    async def _add_prop_to_fs(self, host: str, prop: str, value: str, filesystems: Union[List[str], None] = None) -> None:
+    async def _add_prop_to_fs(
+        self,
+        host: str,
+        prop: str,
+        value: str,
+        filesystems: Union[List[str], None] = None,
+    ) -> None:
         if filesystems is not None:
             for fs in filesystems:
-                result = await self._zfs[host].add_filesystem_prop(filesystem=fs, prop=prop, value=value)
+                result = await self._zfs[host].add_filesystem_prop(
+                    filesystem=fs, prop=prop, value=value
+                )
                 self.add_history(result=result)
 
     async def _remove_prop_from_all_fs(self, host: str, prop: str) -> None:
         filesystems_with_prop_result = await self._zfs[host].filesystems_with_prop(prop)
         filesystems_with_prop = list(filesystems_with_prop_result.data)
         for fs in filesystems_with_prop:
-            result = await self._zfs[host].remove_filesystem_prop(filesystem=fs, prop=prop)
+            result = await self._zfs[host].remove_filesystem_prop(
+                filesystem=fs, prop=prop
+            )
             self.add_history(result=result)
 
     async def _create_automation(self, name: str = "") -> None:
-        tw_rows = Tailwind().width("full").align_items("center").justify_content("between")
+        tw_rows = (
+            Tailwind().width("full").align_items("center").justify_content("between")
+        )
         self.options = {}
         self.picked_options = {}
         self.triggers = {}
@@ -334,12 +373,22 @@ class Automation(Tab):
                     self.auto = auto
 
         def validate_name(n: str):
-            if len(n) > 0 and n.islower() and "@" not in n and (n not in self.job_names or name != ""):
+            if (
+                len(n) > 0
+                and n.islower()
+                and "@" not in n
+                and (n not in self.job_names or name != "")
+            ):
                 return True
             return False
 
         def add_option(option, value=""):
-            if option is not None and option != "" and option not in self.picked_options and not (self.options[option]["required"] is True and value == ""):
+            if (
+                option is not None
+                and option != ""
+                and option not in self.picked_options
+                and not (self.options[option]["required"] is True and value == "")
+            ):
                 with self.options_scroll:
                     with ui.row() as option_row:
                         option_row.tailwind(tw_rows)
@@ -349,8 +398,11 @@ class Automation(Tab):
                             self.option_controls[option] = {
                                 "control": el.FInput(
                                     option,
-                                    on_change=lambda e, option=option: set_option(option, e.value),
-                                    read_only=self.options[option]["control"] == "label",
+                                    on_change=lambda e, option=option: set_option(
+                                        option, e.value
+                                    ),
+                                    read_only=self.options[option]["control"]
+                                    == "label",
                                 ),
                                 "row": option_row,
                             }
@@ -358,7 +410,10 @@ class Automation(Tab):
                             with ui.button(icon="help"):
                                 ui.tooltip(self.options[option]["description"])
                         if self.options[option]["required"] is not True:
-                            ui.button(icon="remove", on_click=lambda _, option=option: remove_option(option)).tailwind.margin("mr-8")
+                            ui.button(
+                                icon="remove",
+                                on_click=lambda _, option=option: remove_option(option),
+                            ).tailwind.margin("mr-8")
                 self.build_command()
 
         def remove_option(option):
@@ -387,7 +442,9 @@ class Automation(Tab):
             async def target_host_selected() -> None:
                 if self.target_host.value != "":
                     if "ssh-target" in self.option_controls:
-                        self.option_controls["ssh-target"]["control"].value = self.target_host.value
+                        self.option_controls["ssh-target"][
+                            "control"
+                        ].value = self.target_host.value
                     else:
                         add_option("ssh-target", self.target_host.value)
                     fs = await self._zfs[self.target_host.value].filesystems
@@ -436,7 +493,9 @@ class Automation(Tab):
                     elif v == "false":
                         exclude.append(fs)
 
-            def cull_fs_list(e: events.GenericEventArguments, value: str = "false") -> None:
+            def cull_fs_list(
+                e: events.GenericEventArguments, value: str = "false"
+            ) -> None:
                 if e.sender != self.parentchildren:
                     self.parentchildren.disable()
                 if e.sender != self.parent:
@@ -491,12 +550,31 @@ class Automation(Tab):
                 row.tailwind.width("[860px]").justify_content("center")
                 with ui.column() as col:
                     col.tailwind.height("full").width("[420px]")
-                    self.prop = el.DInput(label="Property", value=auto.prop, on_change=build_command, validation=validate_prop)
+                    self.prop = el.DInput(
+                        label="Property",
+                        value=auto.prop,
+                        on_change=build_command,
+                        validation=validate_prop,
+                    )
                     self.app_em.append(self.prop)
-                    self.target_host = el.DSelect(target_host, label="Target Host", on_change=target_host_selected)
+                    self.target_host = el.DSelect(
+                        target_host, label="Target Host", on_change=target_host_selected
+                    )
                     self.target_paths = [""]
-                    self.target_path = el.DSelect(self.target_paths, value="", label="Target Path", new_value_mode="add-unique", on_change=build_command)
-                    self.hosts = el.DSelect(source_hosts, label="Source Host(s)", value=auto.hosts, multiple=True, with_input=True)
+                    self.target_path = el.DSelect(
+                        self.target_paths,
+                        value="",
+                        label="Target Path",
+                        new_value_mode="add-unique",
+                        on_change=build_command,
+                    )
+                    self.hosts = el.DSelect(
+                        source_hosts,
+                        label="Source Host(s)",
+                        value=auto.hosts,
+                        multiple=True,
+                        with_input=True,
+                    )
                     all_fs_to_lists()
                     with ui.scroll_area().classes("col"):
                         self.parentchildren = el.DSelect(
@@ -553,10 +631,17 @@ class Automation(Tab):
                 row.tailwind(tw_rows)
                 with ui.row() as row:
                     row.tailwind.align_items("center")
-                    self.current_option = el.FSelect(list(self.options.keys()), label="Option", with_input=True, on_change=lambda e: option_changed(e))
+                    self.current_option = el.FSelect(
+                        list(self.options.keys()),
+                        label="Option",
+                        with_input=True,
+                        on_change=lambda e: option_changed(e),
+                    )
                     with ui.button(icon="help"):
                         self.current_help = ui.tooltip("")
-                ui.button(icon="add", on_click=lambda: add_option(self.current_option.value)).tailwind.margin("mr-8")
+                ui.button(
+                    icon="add", on_click=lambda: add_option(self.current_option.value)
+                ).tailwind.margin("mr-8")
             self.options_scroll = ui.scroll_area().classes("col")
             self.options_scroll.tailwind.width("full")
             self.option_controls = {}
@@ -584,7 +669,10 @@ class Automation(Tab):
                                     trigger_validation = interval_validation
                                     if value == "":
                                         value = "00:00:00:30:00"
-                                self.picked_triggers[ts] = {"type": trigger, "value": value}
+                                self.picked_triggers[ts] = {
+                                    "type": trigger,
+                                    "value": value,
+                                }
                                 self.trigger_controls[ts] = {}
                                 self.trigger_controls[ts]["row"] = trigger_row
                                 row.tailwind.align_items("center")
@@ -595,16 +683,22 @@ class Automation(Tab):
                                     on_change=lambda e, ts=ts: set_trigger(ts, e.value),
                                     validation=trigger_validation,
                                 )
-                                self.schedule_em.append(self.trigger_controls[ts]["control"])
+                                self.schedule_em.append(
+                                    self.trigger_controls[ts]["control"]
+                                )
                                 with ui.button(icon="help"):
-                                    self.trigger_controls[ts]["tooltip"] = ui.tooltip("")
+                                    self.trigger_controls[ts]["tooltip"] = ui.tooltip(
+                                        ""
+                                    )
                                     set_trigger_tooltip(self.trigger_controls[ts])
                             ui.button(
                                 icon="remove",
                                 on_click=lambda _, ts=ts: remove_trigger(ts),
                             ).tailwind.margin("mr-8")
                 else:
-                    el.notify("Mixing trigger types in Anding Mode disabled.", type="negative")
+                    el.notify(
+                        "Mixing trigger types in Anding Mode disabled.", type="negative"
+                    )
 
         def remove_trigger(ts):
             self.schedule_em.remove(self.trigger_controls[ts]["control"])
@@ -620,7 +714,9 @@ class Automation(Tab):
             if "control" in controls:
                 if controls["control"]._props["label"] == "Cron":
                     try:
-                        controls["tooltip"].text = get_description(controls["control"].value)
+                        controls["tooltip"].text = get_description(
+                            controls["control"].value
+                        )
                     except Exception:
                         controls["tooltip"].text = "Invalid Cron Syntax"
                 elif controls["control"]._props["label"] == "Interval":
@@ -651,8 +747,12 @@ class Automation(Tab):
                 self.default_triggers = self.auto.triggers
             with ui.row() as row:
                 row.tailwind(tw_rows)
-                self.current_trigger = el.FSelect(["Cron", "Interval"], value="Cron", label="Trigger", with_input=True)
-                ui.button(icon="add", on_click=lambda: add_trigger(self.current_trigger.value)).tailwind.margin("mr-8")
+                self.current_trigger = el.FSelect(
+                    ["Cron", "Interval"], value="Cron", label="Trigger", with_input=True
+                )
+                ui.button(
+                    icon="add", on_click=lambda: add_trigger(self.current_trigger.value)
+                ).tailwind.margin("mr-8")
             self.triggers_scroll = ui.scroll_area().classes("col")
             self.triggers_scroll.tailwind.width("full")
             self.trigger_controls = {}
@@ -675,7 +775,11 @@ class Automation(Tab):
                         if isinstance(self.auto, scheduler.Zfs_Autobackup):
                             await zab_controls(self.auto)
                         else:
-                            await zab_controls(scheduler.Zfs_Autobackup(host=self.host, hosts=[self.host]))
+                            await zab_controls(
+                                scheduler.Zfs_Autobackup(
+                                    host=self.host, hosts=[self.host]
+                                )
+                            )
                     if self.app.value == "local":
                         local_controls()
                     if self.app.value == "remote":
@@ -684,17 +788,35 @@ class Automation(Tab):
             self.stepper.next()
 
         def local_controls():
-            el.DInput("Command", value=self.auto.command).bind_value_to(self.command, "value")
+            el.DInput("Command", value=self.auto.command).bind_value_to(
+                self.command, "value"
+            )
 
         def remote_controls():
-            command_input = el.DInput("Command", value=self.auto.command).bind_value_to(self.command, "value")
-            self.hosts = el.DSelect(self._zfs_hosts, value=self.auto.hosts, label="Hosts", with_input=True, multiple=True)
-            self.save.bind_enabled_from(self.hosts, "value", backward=lambda x: len(x) > 0)
+            command_input = el.DInput("Command", value=self.auto.command).bind_value_to(
+                self.command, "value"
+            )
+            self.hosts = el.DSelect(
+                self._zfs_hosts,
+                value=self.auto.hosts,
+                label="Hosts",
+                with_input=True,
+                multiple=True,
+            )
+            self.save.bind_enabled_from(
+                self.hosts, "value", backward=lambda x: len(x) > 0
+            )
 
         def to_interval(value: str):
             interval = value.split(":", 4)
             interval = interval + ["0"] * (5 - len(interval))
-            return IntervalTrigger(weeks=int(interval[0]), days=int(interval[1]), hours=int(interval[2]), minutes=int(interval[3]), seconds=int(interval[4]))
+            return IntervalTrigger(
+                weeks=int(interval[0]),
+                days=int(interval[1]),
+                hours=int(interval[2]),
+                minutes=int(interval[3]),
+                seconds=int(interval[4]),
+            )
 
         def build_triggers():
             combine = AndTrigger if self.schedule_mode.value == "And" else OrTrigger
@@ -721,20 +843,37 @@ class Automation(Tab):
                                 row.tailwind.width("[860px]").justify_content("center")
                                 with ui.column() as col:
                                     col.tailwind.height("full").width("[420px]")
-                                    self.auto_name = el.DInput(label="Name", value=" ", validation=validate_name)
+                                    self.auto_name = el.DInput(
+                                        label="Name",
+                                        value=" ",
+                                        validation=validate_name,
+                                    )
                                     with el.WRow():
-                                        self.pipe_success = el.DCheckbox("Pipe Success", value=self.auto.pipe_success)
-                                        self.pipe_error = el.DCheckbox("Pipe Error", value=self.auto.pipe_error)
-                                    self.schedule_em = el.ErrorAggregator(self.auto_name)
+                                        self.pipe_success = el.DCheckbox(
+                                            "Pipe Success", value=self.auto.pipe_success
+                                        )
+                                        self.pipe_error = el.DCheckbox(
+                                            "Pipe Error", value=self.auto.pipe_error
+                                        )
+                                    self.schedule_em = el.ErrorAggregator(
+                                        self.auto_name
+                                    )
                                     if name != "":
-                                        self.app = el.DInput(label="Application", value=self.auto.app).props("readonly")
+                                        self.app = el.DInput(
+                                            label="Application", value=self.auto.app
+                                        ).props("readonly")
                                     else:
                                         self.app = el.DSelect(
                                             ["zfs_autobackup", "local", "remote"],
                                             value="zfs_autobackup",
                                             label="Application",
                                         )
-                                    self.schedule_mode = el.DSelect(["Or", "And"], value="Or", label="Schedule Mode", on_change=schedule_mode_change)
+                                    self.schedule_mode = el.DSelect(
+                                        ["Or", "And"],
+                                        value="Or",
+                                        label="Schedule Mode",
+                                        on_change=schedule_mode_change,
+                                    )
                                     triggers_col = el.WColumn().classes("col")
                                     with triggers_col:
                                         trigger_controls()
@@ -754,8 +893,15 @@ class Automation(Tab):
                                     row.tailwind.height("[40px]")
                                     self.as_spinner = el.Spinner()
                                     self.app_em = el.ErrorAggregator()
-                                    self.save = el.DButton("SAVE", on_click=lambda: automation_dialog.submit("save"))
-                                    self.save.bind_enabled_from(self.app_em, "no_errors")
+                                    self.save = el.DButton(
+                                        "SAVE",
+                                        on_click=lambda: automation_dialog.submit(
+                                            "save"
+                                        ),
+                                    )
+                                    self.save.bind_enabled_from(
+                                        self.app_em, "no_errors"
+                                    )
                                     el.Spinner(master=self.as_spinner)
             self.auto_name.value = name
             if name != "":
@@ -782,16 +928,37 @@ class Automation(Tab):
                     command = AutomationTemplate(self.prop.value)
                     prop = command.safe_substitute(name=auto_name, host=host)
                     await self._remove_prop_from_all_fs(host=host, prop=prop)
-                    await self._add_prop_to_fs(host=host, prop=prop, value="true", filesystems=self.parentchildren.value)
-                    await self._add_prop_to_fs(host=host, prop=prop, value="parent", filesystems=self.parent.value)
-                    await self._add_prop_to_fs(host=host, prop=prop, value="child", filesystems=self.children.value)
-                    await self._add_prop_to_fs(host=host, prop=prop, value="false", filesystems=self.exclude.value)
+                    await self._add_prop_to_fs(
+                        host=host,
+                        prop=prop,
+                        value="true",
+                        filesystems=self.parentchildren.value,
+                    )
+                    await self._add_prop_to_fs(
+                        host=host,
+                        prop=prop,
+                        value="parent",
+                        filesystems=self.parent.value,
+                    )
+                    await self._add_prop_to_fs(
+                        host=host,
+                        prop=prop,
+                        value="child",
+                        filesystems=self.children.value,
+                    )
+                    await self._add_prop_to_fs(
+                        host=host,
+                        prop=prop,
+                        value="false",
+                        filesystems=self.exclude.value,
+                    )
                     auto = scheduler.Zfs_Autobackup(
                         id=auto_id,
                         name=auto_name,
                         hosts=hosts,
                         host=host,
-                        command="python -m zfs_autobackup.ZfsAutobackup" + self.command.value,
+                        command="python -m zfs_autobackup.ZfsAutobackup"
+                        + self.command.value,
                         schedule_mode=self.schedule_mode.value,
                         triggers=self.picked_triggers,
                         options=self.picked_options,

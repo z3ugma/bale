@@ -1,18 +1,17 @@
+import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
-from nicegui import ui, app, Tailwind  # type: ignore
+
+from nicegui import ui  # type: ignore
+from nicegui.elements.mixins.validation_element import ValidationElement  # type: ignore
 from nicegui.elements.spinner import SpinnerTypes  # type: ignore
 from nicegui.elements.tabs import Tab  # type: ignore
 from nicegui.tailwind_types.height import Height  # type: ignore
 from nicegui.tailwind_types.width import Width  # type: ignore
-from nicegui.elements.mixins.validation_element import ValidationElement  # type: ignore
-from nicegui.events import GenericEventArguments, handle_event  # type: ignore
-from bale.interfaces import cli
-import logging
 
 logger = logging.getLogger(__name__)
 
-orange = "#E97451"
-dark = "#0E1210"
+primary = "#F8F8F2"
+dark = "#282a36"
 
 
 def load_element_css():
@@ -30,8 +29,8 @@ def load_element_css():
         body.body--dark .q-drawer, 
         body.body--dark .q-footer, 
         body.body--dark .q-header {{
-            color: {orange} !important;
-            border-color: {orange} !important;
+            color: {primary} !important;
+            border-color: {primary} !important;
         }}
         .full-size-stepper,
         .full-size-stepper .q-stepper__content,
@@ -47,7 +46,7 @@ def load_element_css():
             white-space: pre-line;
         }}
         .q-drawer--bordered{{
-            border-color: {orange} !important;
+            border-color: {primary} !important;
         }}
     </style>
     """
@@ -72,7 +71,11 @@ class ErrorAggregator:
     @property
     def no_errors(self) -> bool:
         if len(self.elements) > 0:
-            validators = all(validation(element.value) for element in self.elements for validation in element.validation.values())
+            validators = all(
+                validation(element.value)
+                for element in self.elements
+                for validation in element.validation.values()
+            )
             return self.enable and validators
         else:
             return True
@@ -100,7 +103,7 @@ class WRow(ui.row):
 class Card(ui.card):
     def __init__(self) -> None:
         super().__init__()
-        self.tailwind.border_color(f"[{orange}]")
+        self.tailwind.border_color(f"[{primary}]")
 
 
 class DInput(ui.input):
@@ -221,7 +224,16 @@ class DSelect(ui.select):
         multiple: bool = False,
         clearable: bool = False,
     ) -> None:
-        super().__init__(options, label=label, value=value, on_change=on_change, with_input=with_input, new_value_mode=new_value_mode, multiple=multiple, clearable=clearable)
+        super().__init__(
+            options,
+            label=label,
+            value=value,
+            on_change=on_change,
+            with_input=with_input,
+            new_value_mode=new_value_mode,
+            multiple=multiple,
+            clearable=clearable,
+        )
         self.tailwind.width("full")
         if multiple is True:
             self.props("use-chips")
@@ -240,7 +252,16 @@ class FSelect(ui.select):
         multiple: bool = False,
         clearable: bool = False,
     ) -> None:
-        super().__init__(options, label=label, value=value, on_change=on_change, with_input=with_input, new_value_mode=new_value_mode, multiple=multiple, clearable=clearable)
+        super().__init__(
+            options,
+            label=label,
+            value=value,
+            on_change=on_change,
+            with_input=with_input,
+            new_value_mode=new_value_mode,
+            multiple=multiple,
+            clearable=clearable,
+        )
         self.tailwind.width("64")
 
 
@@ -259,7 +280,13 @@ class DButton(ui.button):
 
 
 class DCheckbox(ui.checkbox):
-    def __init__(self, text: str = "", *, value: bool = False, on_change: Callable[..., Any] | None = None) -> None:
+    def __init__(
+        self,
+        text: str = "",
+        *,
+        value: bool = False,
+        on_change: Callable[..., Any] | None = None,
+    ) -> None:
         super().__init__(text, value=value, on_change=on_change)
         self.tailwind.text_color("secondary")
 
@@ -349,7 +376,13 @@ def notify(
 
 
 class JsonEditor(ui.json_editor):
-    def __init__(self, properties: Dict, *, on_select: Optional[Callable] = None, on_change: Optional[Callable] = None) -> None:
+    def __init__(
+        self,
+        properties: Dict,
+        *,
+        on_select: Optional[Callable] = None,
+        on_change: Optional[Callable] = None,
+    ) -> None:
         super().__init__(properties, on_select=on_select, on_change=on_change)
         self.classes("jse-theme-dark")
         self.tailwind.height("[360px]").width("full")

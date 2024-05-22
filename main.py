@@ -27,12 +27,23 @@ ui.checkbox.default_props("dense")
 ui.stepper.default_props("flat")
 ui.stepper.default_classes("full-size-stepper")
 
-from bale import page, logo, scheduler
-
+from bale import logo, page, scheduler
 
 if __name__ in {"__main__", "__mp_main__"}:
-    app.on_startup(lambda: print(f"Starting bale, bound to the following addresses {', '.join(app.urls)}.", flush=True))
+    app.on_startup(
+        lambda: print(
+            f"Starting bale, bound to the following addresses {', '.join(app.urls)}.",
+            flush=True,
+        )
+    )
     page.build()
     s = scheduler.Scheduler()
     ui.timer(0.1, s.start, once=True)
-    ui.run(title="bale", favicon=logo.favicon, dark=True, reload=False, show=False, show_welcome_message=False)
+    ui.run(
+        title="bale",
+        favicon=logo.favicon,
+        dark=True,
+        reload=True,
+        show=False,
+        show_welcome_message=False,
+    )
